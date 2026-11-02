@@ -19,3 +19,15 @@ Even though Dog is empty, it still has: eat(); like that
 public interface UserRepository extends JpaRepository<User, Long> {
 
 }
+
+//By extending:
+//JpaRepository<User, Long>
+
+//we get methods such as:
+
+//save(user);
+//findAll();
+//findById(id);
+//deleteById(id);
+//existsById(id);
+//count();

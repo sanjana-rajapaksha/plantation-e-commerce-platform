@@ -14,14 +14,13 @@ public class User {
     private String email;
     private String password;
 
+    //getters and setters
+
     public Long getId() {
         return id;
-    }
+    } //Long can represent null,long can't represent null
 
-    public String getFirstName() {
-        return firstName;
-
-    }
+    public String getFirstName() {return firstName;}
 
     public void setFirstName(String firstName) {
         this.firstName = firstName;
