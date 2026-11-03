@@ -1,8 +1,12 @@
 package com.harithasewana.identity.controller;
 
+import com.harithasewana.identity.dto.UserRegistrationRequest;
+import com.harithasewana.identity.dto.UserResponse;
+import com.harithasewana.identity.dto.UserUpdateRequest;
 import com.harithasewana.identity.entity.User;
 import com.harithasewana.identity.service.UserService;
 import com.harithasewana.identity.service.TestService;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -21,32 +25,35 @@ public class UserController {
     }
 
     @PostMapping("/users")
-    public User createUser(@RequestBody User user) {
-        return userlocal.createUser(user);
-        //@RequestBody
-        //Tells Spring to read the incoming request body and convert its JSON into a Java object.
+    public UserResponse createUser(@Valid @RequestBody
+                           UserRegistrationRequest request) {
+
+        return userlocal.createUser(request);
+        //@Valid - This tells Spring to execute the validation rules defined in UserRegistrationRequest
+        //@RequestBody - Tells Spring to read the incoming request body and convert its JSON into a Java object.
+        //UserRegistrationRequest - We now accept a DTO instead of directly accepting the database entity
     }
 
     @GetMapping("/users")
-    public List<User> getAllUsers() {
+    public List<UserResponse> getAllUsers() {
         return userlocal.getAllUsers();
     }
 
     @GetMapping("/users/{id}")
-    public ResponseEntity<User> getUserById(@PathVariable Long id) { //ResponseEntity lets us control the HTTP response, including its status code and body.
+    public ResponseEntity<UserResponse> getUserById(@PathVariable Long id) { //ResponseEntity lets us control the HTTP response, including its status code and body.
         return userlocal.getUserById(id)
                 .map(ResponseEntity::ok) //If the Optional contains a user, this converts that user into a successful HTTP response.
                 .orElseGet(() -> ResponseEntity.notFound().build());  //If the Optional is empty, this returns a 404 Not Found response.
     }
 
     @PutMapping("/users/{id}")
-    public ResponseEntity<User> updateUser(
+    public ResponseEntity<UserResponse> updateUser(
             @PathVariable Long id,
-            @RequestBody User updatedUser) {
+            @Valid @RequestBody UserUpdateRequest request) {
 
-        return userlocal.updateUser(id, updatedUser)
+        return userlocal.updateUser(id, request)
                 .map(ResponseEntity::ok)
-                .orElseGet(() -> ResponseEntity.notFound().build());
+                .orElse(ResponseEntity.notFound().build());
     }
 
     @DeleteMapping("/users/{id}")
