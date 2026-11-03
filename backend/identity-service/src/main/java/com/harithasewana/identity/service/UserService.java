@@ -1,10 +1,12 @@
 package com.harithasewana.identity.service;
 
+import com.harithasewana.identity.dto.LoginRequest;
 import com.harithasewana.identity.dto.UserRegistrationRequest;
 import com.harithasewana.identity.dto.UserResponse;
 import com.harithasewana.identity.dto.UserUpdateRequest;
 import com.harithasewana.identity.entity.User;
 import com.harithasewana.identity.exception.EmailAlreadyExistsException;
+import com.harithasewana.identity.exception.InvalidCredentialsException;
 import com.harithasewana.identity.repository.UserRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -119,6 +121,19 @@ public class UserService {
 
         userRepolocal.deleteById(id);
         return true;
+    }
+
+    public UserResponse login(LoginRequest request) {
+
+        User user = userRepolocal.findByEmail(request.getEmail())
+                .orElseThrow(() ->
+                        new InvalidCredentialsException("Invalid email or password"));
+
+        if (!passEncorderLocal.matches(request.getPassword(), user.getPassword())) {
+            throw new InvalidCredentialsException("Invalid email or password");
+        }
+
+        return mapToResponse(user);
     }
 
 }

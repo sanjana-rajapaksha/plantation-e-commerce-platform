@@ -3,6 +3,8 @@ package com.harithasewana.identity.repository;
 import com.harithasewana.identity.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 
+import java.util.Optional;
+
 /*
 interface Animal {
     void eat();
@@ -25,9 +27,8 @@ public interface UserRepository extends JpaRepository<User, Long> {
     //existsById(id) -> Check whether a user ID exists
 
     boolean existsByEmail(String email);
-    boolean existsByEmailAndIdNot(String email, Long id); /*existsByEmail – Check whether an email exists.
-                                                            AndIdNot – Exclude the user whose ID is provided.*/
-
+    boolean existsByEmailAndIdNot(String email, Long id); /*existsByEmail – Check whether an email exists. AndIdNot – Exclude the user whose ID is provided.*/
+    Optional<User> findByEmail(String email);
 }
 
 //By extending:
