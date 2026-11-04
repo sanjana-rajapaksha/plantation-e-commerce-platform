@@ -2,9 +2,11 @@ package com.harithasewana.identity.controller;
 
 import com.harithasewana.identity.dto.*;
 import com.harithasewana.identity.entity.User;
+import com.harithasewana.identity.service.JwtService;
 import com.harithasewana.identity.service.UserService;
 import com.harithasewana.identity.service.TestService;
 import jakarta.validation.Valid;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -15,11 +17,12 @@ import java.util.List;
 public class UserController {
 
     private final UserService userlocal;
-    private final TestService test;
 
-    public UserController(UserService userService, TestService testService){
+    private final JwtService jwtService;
+
+    public UserController(UserService userService, JwtService jwtService){
         this.userlocal = userService;
-        this.test = testService;
+        this.jwtService = jwtService;
     }
 
     @PostMapping("/users")
@@ -72,5 +75,19 @@ public class UserController {
         LoginResponse response = userlocal.login(request);
 
         return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/validate-token")
+    public ResponseEntity<String> validateToken(
+            @RequestParam String token) {
+
+        if (!jwtService.isTokenValid(token)) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body("Invalid or expired token");
+        }
+
+        Long userId = jwtService.extractUserId(token);
+
+        return ResponseEntity.ok("Valid token. User ID: " + userId);
     }
 }

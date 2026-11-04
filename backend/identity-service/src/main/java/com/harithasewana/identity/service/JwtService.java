@@ -2,6 +2,8 @@
 package com.harithasewana.identity.service;
 
 import com.harithasewana.identity.entity.User;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
@@ -29,7 +31,6 @@ public class JwtService {
 
     public String generateToken(User user) {
 
-
         return Jwts.builder()  //Creates a JWT builder object. We use this object to construct our token
                 .subject(user.getId().toString())  //sub - Sets the subject of the token ------------------------------
                 .claim("email", user.getEmail())  //email - Adds a custom claim to the token                    |->PAYLOAD BODY
@@ -38,4 +39,29 @@ public class JwtService {
                 .signWith(getSigningKey())//--------------------------------------------------------------------------->SIGNATURE
                 .compact();  //Builds the final JWT string
     }
+
+    private Claims extractAllClaims(String token) {
+
+        return Jwts.parser()  //Creates a JWT parser
+                .verifyWith(getSigningKey())  //Supplies the key used to verify the signature
+                .build()
+                .parseSignedClaims(token) //Parses and verifies the signed JWT
+                .getPayload();
+    }
+
+    public boolean isTokenValid(String token) {
+        try {
+            extractAllClaims(token);
+            return true;
+        } catch (JwtException | IllegalArgumentException exception) {
+            return false;
+        }
+    }
+
+    public Long extractUserId(String token) {
+        return Long.parseLong(
+                extractAllClaims(token).getSubject()
+        );
+    }
+
 }
