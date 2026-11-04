@@ -1,9 +1,6 @@
 package com.harithasewana.identity.controller;
 
-import com.harithasewana.identity.dto.LoginRequest;
-import com.harithasewana.identity.dto.UserRegistrationRequest;
-import com.harithasewana.identity.dto.UserResponse;
-import com.harithasewana.identity.dto.UserUpdateRequest;
+import com.harithasewana.identity.dto.*;
 import com.harithasewana.identity.entity.User;
 import com.harithasewana.identity.service.UserService;
 import com.harithasewana.identity.service.TestService;
@@ -69,10 +66,10 @@ public class UserController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<UserResponse> login(
+    public ResponseEntity<LoginResponse> login(
             @Valid @RequestBody LoginRequest request) {
 
-        UserResponse response = userlocal.login(request);
+        LoginResponse response = userlocal.login(request);
 
         return ResponseEntity.ok(response);
     }

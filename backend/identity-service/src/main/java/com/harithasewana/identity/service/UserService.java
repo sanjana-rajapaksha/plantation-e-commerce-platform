@@ -1,14 +1,12 @@
 package com.harithasewana.identity.service;
 
-import com.harithasewana.identity.dto.LoginRequest;
-import com.harithasewana.identity.dto.UserRegistrationRequest;
-import com.harithasewana.identity.dto.UserResponse;
-import com.harithasewana.identity.dto.UserUpdateRequest;
+import com.harithasewana.identity.dto.*;
 import com.harithasewana.identity.entity.User;
 import com.harithasewana.identity.exception.EmailAlreadyExistsException;
 import com.harithasewana.identity.exception.InvalidCredentialsException;
 import com.harithasewana.identity.repository.UserRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import com.harithasewana.identity.service.JwtService;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -19,6 +17,7 @@ public class UserService {
 
     private final UserRepository userRepolocal;
     private final PasswordEncoder passEncorderLocal;
+    private final JwtService jwtService;
 
     /*
     ------------------------
@@ -42,10 +41,12 @@ public class UserService {
 
     public UserService(
             UserRepository userRepository,
-            PasswordEncoder passwordEncoder)
+            PasswordEncoder passwordEncoder,
+            JwtService jwtService)
     {
         this.userRepolocal = userRepository;
         this.passEncorderLocal = passwordEncoder;
+        this.jwtService = jwtService;;
     }
 
     public UserResponse createUser(UserRegistrationRequest request) {
@@ -123,7 +124,7 @@ public class UserService {
         return true;
     }
 
-    public UserResponse login(LoginRequest request) {
+    public LoginResponse login(LoginRequest request) {
 
         User user = userRepolocal.findByEmail(request.getEmail())
                 .orElseThrow(() ->
@@ -133,7 +134,14 @@ public class UserService {
             throw new InvalidCredentialsException("Invalid email or password");
         }
 
-        return mapToResponse(user);
+        String token = jwtService.generateToken(user);
+
+        LoginResponse response = new LoginResponse();
+        response.setAccessToken(token);
+        response.setTokenType("Bearer");
+        response.setExpiresIn(3600);
+
+        return response;
     }
 
 }
