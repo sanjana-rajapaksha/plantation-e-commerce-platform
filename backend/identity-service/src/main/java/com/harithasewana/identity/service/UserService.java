@@ -1,16 +1,24 @@
 package com.harithasewana.identity.service;
 
 import com.harithasewana.identity.dto.*;
+import com.harithasewana.identity.entity.Role;
 import com.harithasewana.identity.entity.User;
 import com.harithasewana.identity.exception.EmailAlreadyExistsException;
 import com.harithasewana.identity.exception.InvalidCredentialsException;
+import com.harithasewana.identity.repository.RoleRepository;
 import com.harithasewana.identity.repository.UserRepository;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import com.harithasewana.identity.service.JwtService;
 import org.springframework.stereotype.Service;
+import com.harithasewana.identity.dto.ChangePasswordRequest;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 @Service
 public class UserService {
@@ -18,6 +26,8 @@ public class UserService {
     private final UserRepository userRepolocal;
     private final PasswordEncoder passEncorderLocal;
     private final JwtService jwtService;
+    private final AuthenticationManager authenticationManager;
+    private final RoleRepository roleRepository;
 
     /*
     ------------------------
@@ -42,11 +52,15 @@ public class UserService {
     public UserService(
             UserRepository userRepository,
             PasswordEncoder passwordEncoder,
-            JwtService jwtService)
+            JwtService jwtService,
+            AuthenticationManager authenticationManager,
+            RoleRepository roleRepository)
     {
         this.userRepolocal = userRepository;
         this.passEncorderLocal = passwordEncoder;
-        this.jwtService = jwtService;;
+        this.jwtService = jwtService;
+        this.authenticationManager = authenticationManager;
+        this.roleRepository = roleRepository;
     }
 
     public UserResponse createUser(UserRegistrationRequest request) {
@@ -64,6 +78,13 @@ public class UserService {
         user.setPassword(passEncorderLocal.encode(request.getPassword()));
 
         User savedUser = userRepolocal.save(user);
+
+        Role customerRole = roleRepository.findByName("ROLE_CUSTOMER")
+                .orElseThrow(() ->
+                        new RuntimeException("Customer role not found")
+                );
+
+        user.setRoles(Set.of(customerRole));
 
         return mapToResponse(savedUser);
     }
@@ -124,15 +145,30 @@ public class UserService {
         return true;
     }
 
+
     public LoginResponse login(LoginRequest request) {
+
+        Authentication authentication;
+
+        try {
+            authentication = authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(
+                            request.getEmail(),
+                            request.getPassword()
+                    )
+            );
+        } catch (AuthenticationException exception) {
+            throw new InvalidCredentialsException(
+                    "Invalid email or password"
+            );
+        }
 
         User user = userRepolocal.findByEmail(request.getEmail())
                 .orElseThrow(() ->
-                        new InvalidCredentialsException("Invalid email or password"));
-
-        if (!passEncorderLocal.matches(request.getPassword(), user.getPassword())) {
-            throw new InvalidCredentialsException("Invalid email or password");
-        }
+                        new InvalidCredentialsException(
+                                "Invalid email or password"
+                        )
+                );
 
         String token = jwtService.generateToken(user);
 
@@ -143,5 +179,49 @@ public class UserService {
 
         return response;
     }
+
+
+    public void changePassword(
+            Long userId,
+            ChangePasswordRequest request) {
+
+        User user = userRepolocal.findById(userId)
+                .orElseThrow(() ->
+                        new RuntimeException("User not found"));
+
+        // Verify the current password
+        if (!passEncorderLocal.matches(
+                request.getCurrentPassword(),
+                user.getPassword())) {
+
+            throw new InvalidCredentialsException(
+                    "Current password is incorrect");
+        }
+
+        // Check whether the new password and confirmation match
+        if (!request.getNewPassword().equals(
+                request.getConfirmNewPassword())) {
+
+            throw new IllegalArgumentException(
+                    "New password and confirmation do not match");
+        }
+
+        // Prevent reusing the current password
+        if (passEncorderLocal.matches(
+                request.getNewPassword(),
+                user.getPassword())) {
+
+            throw new IllegalArgumentException(
+                    "New password must be different from the current password");
+        }
+
+        // Hash the new password
+        user.setPassword(
+                passEncorderLocal.encode(request.getNewPassword()));
+
+        userRepolocal.save(user);
+    }
+
+
 
 }

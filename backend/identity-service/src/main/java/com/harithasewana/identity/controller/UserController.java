@@ -8,7 +8,12 @@ import com.harithasewana.identity.service.TestService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import com.harithasewana.identity.security.CustomUserDetails;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import com.harithasewana.identity.dto.ChangePasswordRequest;
 
 import java.util.List;
 
@@ -35,30 +40,70 @@ public class UserController {
         //UserRegistrationRequest - We now accept a DTO instead of directly accepting the database entity
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/users")
     public List<UserResponse> getAllUsers() {
         return userlocal.getAllUsers();
     }
 
+
     @GetMapping("/users/{id}")
-    public ResponseEntity<UserResponse> getUserById(@PathVariable Long id) { //ResponseEntity lets us control the HTTP response, including its status code and body.
+    public ResponseEntity<UserResponse> getUserById(
+            @PathVariable Long id,
+            @AuthenticationPrincipal CustomUserDetails currentUser) {
+
+        boolean isAdmin = currentUser.getAuthorities()
+                .stream()
+                .anyMatch(authority ->
+                        authority.getAuthority().equals("ROLE_ADMIN"));
+
+        if (!isAdmin && !currentUser.getId().equals(id)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+
         return userlocal.getUserById(id)
-                .map(ResponseEntity::ok) //If the Optional contains a user, this converts that user into a successful HTTP response.
-                .orElseGet(() -> ResponseEntity.notFound().build());  //If the Optional is empty, this returns a 404 Not Found response.
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.notFound().build());
     }
+
+
 
     @PutMapping("/users/{id}")
     public ResponseEntity<UserResponse> updateUser(
             @PathVariable Long id,
-            @Valid @RequestBody UserUpdateRequest request) {
+            @Valid @RequestBody UserUpdateRequest request,
+            @AuthenticationPrincipal CustomUserDetails currentUser) {
+
+        boolean isAdmin = currentUser.getAuthorities()
+                .stream()
+                .anyMatch(authority ->
+                        authority.getAuthority().equals("ROLE_ADMIN"));
+
+        if (!isAdmin && !currentUser.getId().equals(id)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
 
         return userlocal.updateUser(id, request)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
 
+
+
     @DeleteMapping("/users/{id}")
-    public ResponseEntity<Void> deleteUser(@PathVariable Long id) {
+    public ResponseEntity<Void> deleteUser(
+            @PathVariable Long id,
+            @AuthenticationPrincipal CustomUserDetails currentUser) {
+
+        boolean isAdmin = currentUser.getAuthorities()
+                .stream()
+                .anyMatch(authority ->
+                        authority.getAuthority().equals("ROLE_ADMIN"));
+
+        if (!isAdmin && !currentUser.getId().equals(id)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+
         boolean deleted = userlocal.deleteUser(id);
 
         if (!deleted) {
@@ -67,6 +112,7 @@ public class UserController {
 
         return ResponseEntity.noContent().build();
     }
+
 
     @PostMapping("/login")
     public ResponseEntity<LoginResponse> login(
@@ -90,4 +136,16 @@ public class UserController {
 
         return ResponseEntity.ok("Valid token. User ID: " + userId);
     }
+
+
+    @PutMapping("/users/change-password")
+    public ResponseEntity<String> changePassword(
+            @Valid @RequestBody ChangePasswordRequest request,
+            @AuthenticationPrincipal CustomUserDetails currentUser) {
+
+        userlocal.changePassword(currentUser.getId(), request);
+
+        return ResponseEntity.ok("Password changed successfully");
+    }
+
 }
