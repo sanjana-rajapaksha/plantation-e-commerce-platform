@@ -34,6 +34,7 @@ public class JwtService {
         return Jwts.builder()  //Creates a JWT builder object. We use this object to construct our token
                 .subject(user.getId().toString())  //sub - Sets the subject of the token ------------------------------
                 .claim("email", user.getEmail())  //email - Adds a custom claim to the token                    |->PAYLOAD BODY
+                .claim("tokenVersion", user.getTokenVersion())
                 .issuedAt(new Date())  //iat (Issued At)                                                              |
                 .expiration(new Date(System.currentTimeMillis() + expiration))  //exp (expiration time)----------------
                 .signWith(getSigningKey())//--------------------------------------------------------------------------->SIGNATURE
@@ -62,6 +63,10 @@ public class JwtService {
         return Long.parseLong(
                 extractAllClaims(token).getSubject()
         );
+    }
+
+    public Integer extractTokenVersion(String token) {
+        return extractAllClaims(token).get("tokenVersion", Integer.class);
     }
 
 }

@@ -54,6 +54,28 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             CustomUserDetails userDetails =
                     userDetailsService.loadUserById(userId);
 
+            // Check whether the account is enabled
+            if (!userDetails.isEnabled()) {
+                SecurityContextHolder.clearContext();
+                response.sendError(
+                        HttpServletResponse.SC_UNAUTHORIZED,
+                        "Account is disabled"
+                );
+                return;
+            }
+
+            // Check token version
+            Integer tokenVersion = jwtService.extractTokenVersion(token);
+
+            if (!tokenVersion.equals(userDetails.getTokenVersion())) {
+                SecurityContextHolder.clearContext();
+                response.sendError(
+                        HttpServletResponse.SC_UNAUTHORIZED,
+                        "Token has been invalidated"
+                );
+                return;
+            }
+
             UsernamePasswordAuthenticationToken authentication =
                     new UsernamePasswordAuthenticationToken(
                             userDetails,

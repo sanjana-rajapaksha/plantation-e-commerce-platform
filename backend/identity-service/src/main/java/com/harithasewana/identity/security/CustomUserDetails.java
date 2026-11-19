@@ -13,11 +13,15 @@ public class CustomUserDetails implements UserDetails {
     private final String email;
     private final String password;
     private final Collection<? extends GrantedAuthority> authorities;
+    private final boolean enabled;
+    private final Integer tokenVersion;
 
     public CustomUserDetails(User user) {
         this.id = user.getId();
         this.email = user.getEmail();
         this.password = user.getPassword();
+        this.enabled = user.isEnabled();
+        this.tokenVersion = user.getTokenVersion();
 
         this.authorities = user.getRoles()
                 .stream()
@@ -27,6 +31,10 @@ public class CustomUserDetails implements UserDetails {
 
     public Long getId() {
         return id;
+    }
+
+    public Integer getTokenVersion() {
+        return tokenVersion;
     }
 
     @Override
@@ -61,6 +69,7 @@ public class CustomUserDetails implements UserDetails {
 
     @Override
     public boolean isEnabled() {
-        return true;
+        return enabled;
     }
+
 }

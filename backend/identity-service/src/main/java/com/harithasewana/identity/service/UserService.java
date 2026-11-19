@@ -77,14 +77,14 @@ public class UserService {
         user.setEmail(request.getEmail());
         user.setPassword(passEncorderLocal.encode(request.getPassword()));
 
-        User savedUser = userRepolocal.save(user);
-
         Role customerRole = roleRepository.findByName("ROLE_CUSTOMER")
                 .orElseThrow(() ->
                         new RuntimeException("Customer role not found")
                 );
 
         user.setRoles(Set.of(customerRole));
+
+        User savedUser = userRepolocal.save(user);
 
         return mapToResponse(savedUser);
     }
@@ -219,9 +219,25 @@ public class UserService {
         user.setPassword(
                 passEncorderLocal.encode(request.getNewPassword()));
 
+        // Increment token version to invalidate old JWTs
+        user.setTokenVersion(user.getTokenVersion() + 1);
+
+        // Save updated user
         userRepolocal.save(user);
     }
 
+    public Optional<UserResponse> updateAccountStatus(
+            Long userId,
+            boolean enabled) {
 
+        return userRepolocal.findById(userId)
+                .map(user -> {
+                    user.setEnabled(enabled);
+
+                    User updatedUser = userRepolocal.save(user);
+
+                    return mapToResponse(updatedUser);
+                });
+    }
 
 }

@@ -148,4 +148,15 @@ public class UserController {
         return ResponseEntity.ok("Password changed successfully");
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
+    @PatchMapping("/users/{id}/status")
+    public ResponseEntity<UserResponse> updateAccountStatus(
+            @PathVariable Long id,
+            @Valid @RequestBody UpdateAccountStatusRequest request) {
+
+        return userlocal.updateAccountStatus(id, request.getEnabled())
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
+
 }
